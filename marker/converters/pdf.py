@@ -5,6 +5,9 @@ from marker.schema.document import Document
 os.environ["TOKENIZERS_PARALLELISM"] = "false"  # disables a tokenizers warning
 
 from collections import defaultdict
+from marker.logger import get_logger
+
+logger = get_logger()
 from typing import Annotated, Any, Dict, List, Optional, Type, Tuple, Union
 import io
 from contextlib import contextmanager
@@ -48,7 +51,7 @@ from marker.schema.registry import register_block_class
 from marker.util import strings_to_classes
 from marker.processors.llm.llm_handwriting import LLMHandwritingProcessor
 from marker.processors.order import OrderProcessor
-from marker.services.gemini import GoogleGeminiService
+from marker.services.claude_agent import ClaudeAgentService
 from marker.processors.line_merge import LineMergeProcessor
 from marker.processors.llm.llm_mathblock import LLMMathBlockProcessor
 from marker.processors.llm.llm_page_correction import LLMPageCorrectionProcessor
@@ -101,7 +104,7 @@ class PdfConverter(BaseConverter):
         BlankPageProcessor,
         DebugProcessor,
     )
-    default_llm_service: BaseService = GoogleGeminiService
+    default_llm_service: BaseService = ClaudeAgentService
 
     def __init__(
         self,
@@ -141,6 +144,18 @@ class PdfConverter(BaseConverter):
         # Inject llm service into artifact_dict so it can be picked up by processors, etc.
         self.artifact_dict["llm_service"] = llm_service
         self.llm_service = llm_service
+
+        # Log LLM service info
+        if llm_service:
+            service_name = llm_service.__class__.__name__
+            # Find model attribute (different services use different names)
+            model_name = None
+            for attr in dir(llm_service):
+                if attr.endswith("_model") or attr.endswith("_model_name"):
+                    model_name = getattr(llm_service, attr, None)
+                    if model_name:
+                        break
+            logger.info(f"LLM service: {service_name}, model: {model_name}")
 
         self.renderer = renderer
 

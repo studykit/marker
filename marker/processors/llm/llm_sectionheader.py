@@ -122,6 +122,7 @@ Section Headers
         prompt = self.page_prompt.replace(
             "{{section_header_json}}", json.dumps(section_header_json)
         )
+
         response = self.llm_service(
             prompt, None, document.pages[0], SectionHeaderSchema
         )
